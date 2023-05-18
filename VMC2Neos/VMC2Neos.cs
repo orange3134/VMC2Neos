@@ -21,6 +21,7 @@ namespace VMC2Neos
 
         static WebSocket ws;
 
+        static long SendCount = 0;
         static void Main(string[] args)
         {
             //Create Websocket server
@@ -38,7 +39,9 @@ namespace VMC2Neos
 
             ws.OnMessage += (sender, e) =>
             {
-                Console.WriteLine("WebSocket Message Type: " + ", Data: " + e.Data);
+                //Console.WriteLine("WebSocket Message Type: " + ", Data: " + e.Data);
+                SendCount++;
+                Console.WriteLine("送信中:" + SendCount);
             };
 
             ws.OnError += (sender, e) =>
