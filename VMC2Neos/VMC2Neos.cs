@@ -9,6 +9,8 @@ using System.Net;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 using System.Diagnostics;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace VMC2Neos
 {
@@ -22,8 +24,23 @@ namespace VMC2Neos
         static WebSocket ws;
 
         static long SendCount = 0;
+
+        static string Mode = "Relay";
+
+        static string RecordFilePath = "Record.txt";
+
         static void Main(string[] args)
         {
+            //Read settings
+            var filePath = "config.json";
+            if (File.Exists(filePath))
+            {
+                dynamic jsonObj = JsonConvert.DeserializeObject(File.ReadAllText(filePath));
+                Mode = jsonObj["Mode"];
+            }
+
+            Console.WriteLine("Mode = " + Mode);
+
             //Create Websocket server
             server = new WebSocketServer(3000);
             server.AddWebSocketService<Echo>("/");
@@ -56,31 +73,39 @@ namespace VMC2Neos
 
             ws.Connect();
 
-            // Create osc receiver
-            // This is the port we are going to listen on 
-            int port = 39539;
+            if(Mode == "Relay" || Mode == "Record")
+            {
+                // Create osc receiver
+                // This is the port we are going to listen on 
+                int port = 39539;
 
-            // Create the receiver
-            receiver = new OscReceiver(port);
+                // Create the receiver
+                receiver = new OscReceiver(port);
 
-            // Create a thread to do the listening
-            thread = new Thread(new ThreadStart(ListenLoop));
+                // Create a thread to do the listening
+                thread = new Thread(new ThreadStart(ListenLoop));
 
-            // Connect the receiver
-            receiver.Connect();
+                // Connect the receiver
+                receiver.Connect();
 
-            // Start the listen thread
-            thread.Start();
+                // Start the listen thread
+                thread.Start();
 
-            // wait for a key press to exit
-            Console.WriteLine("Press any key to exit");
-            Console.ReadKey(true);
+                // wait for a key press to exit
+                Console.WriteLine("Press any key to exit");
+                Console.ReadKey(true);
 
-            // close the Reciver 
-            receiver.Close();
+                // close the Reciver 
+                receiver.Close();
 
-            // Wait for the listen thread to exit
-            thread.Join();
+                // Wait for the listen thread to exit
+                thread.Join();
+            }else if(Mode == "Play")
+            {
+                PlayRecord();
+                Console.ReadLine();
+            }
+
         }
 
         static void ListenLoop()
@@ -106,6 +131,11 @@ namespace VMC2Neos
                         {
                             var NeosString = "$#" + String.Join("$#", NeosStrings.ToArray()) + "$#";
                             ws.Send(NeosString);
+
+                            if(Mode == "Record")
+                            {
+                                RecordString(NeosString);
+                            }
                         }
                         
                     }
@@ -172,5 +202,30 @@ namespace VMC2Neos
             return NeosStrings;
         }
 
+        public static void RecordString(string str)
+        {
+            var RecordText = "," + str;
+            File.AppendAllText(RecordFilePath, RecordText);
+        }
+
+        static async void PlayRecord()
+        {
+            StreamReader streamReader = new StreamReader(RecordFilePath);
+            string record = streamReader.ReadToEnd();
+            var records = record.Split(',');
+
+            for(int i = 0; i < records.Length; i++)
+            {
+                var send = records[i];
+                ws.Send(send);
+
+                if(i % 8 == 0)
+                {
+                    await Task.Delay(1);
+                }
+            }
+
+            PlayRecord();
+        }
     }
 }
