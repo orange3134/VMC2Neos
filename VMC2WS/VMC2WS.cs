@@ -58,6 +58,7 @@ namespace VMC2WS
             {
                 //Console.WriteLine("WebSocket Message Type: " + ", Data: " + e.Data);
                 SendCount++;
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
                 Console.WriteLine("送信中:" + SendCount);
             };
 
@@ -93,6 +94,7 @@ namespace VMC2WS
 
                 // wait for a key press to exit
                 Console.WriteLine("Press any key to exit");
+                Console.WriteLine("");
                 Console.ReadKey(true);
 
                 // close the Reciver 
