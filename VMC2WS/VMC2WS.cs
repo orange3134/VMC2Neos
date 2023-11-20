@@ -12,9 +12,9 @@ using System.Diagnostics;
 using Newtonsoft.Json;
 using System.IO;
 
-namespace VMC2Neos
+namespace VMC2WS
 {
-    internal class VMC2Neos
+    internal class VMC2WS
     {
         static OscReceiver receiver;
         static Thread thread;
