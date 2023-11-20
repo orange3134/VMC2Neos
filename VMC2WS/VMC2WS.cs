@@ -25,9 +25,13 @@ namespace VMC2WS
 
         static long SendCount = 0;
 
+        //Config
         static string Mode = "Relay";
-
         static string RecordFilePath = "Record.txt";
+
+        static int WSPort = 3000;
+        static int OSCPort = 39539;
+
 
         static void Main(string[] args)
         {
@@ -36,18 +40,23 @@ namespace VMC2WS
             if (File.Exists(filePath))
             {
                 dynamic jsonObj = JsonConvert.DeserializeObject(File.ReadAllText(filePath));
-                Mode = jsonObj["Mode"];
+                Mode = jsonObj["Mode"] ?? Mode;
+                WSPort = jsonObj["WSPort"] ?? WSPort;
+                OSCPort = jsonObj["OSCPort"] ?? OSCPort;
+                RecordFilePath = jsonObj["RecordFilePath"] ?? RecordFilePath;
             }
 
             Console.WriteLine("Mode = " + Mode);
+            Console.WriteLine("WSPort = " + WSPort);
+            Console.WriteLine("OSCPort = " + OSCPort);
 
             //Create Websocket server
-            server = new WebSocketServer(3000);
+            server = new WebSocketServer(WSPort);
             server.AddWebSocketService<Echo>("/");
             server.Start();
 
             //Create Websocket client
-            ws = new WebSocket("ws://localhost:3000/");
+            ws = new WebSocket("ws://localhost:" + WSPort + "/");
 
             ws.OnOpen += (sender, e) =>
             {
@@ -77,11 +86,7 @@ namespace VMC2WS
             if(Mode == "Relay" || Mode == "Record")
             {
                 // Create osc receiver
-                // This is the port we are going to listen on 
-                int port = 39539;
-
-                // Create the receiver
-                receiver = new OscReceiver(port);
+                receiver = new OscReceiver(OSCPort);
 
                 // Create a thread to do the listening
                 thread = new Thread(new ThreadStart(ListenLoop));
